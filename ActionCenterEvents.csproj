@@ -6,7 +6,8 @@
     <PackageReference Include="Microsoft.Toolkit.Uwp.Notifications" Version="7.1.3" />
   </ItemGroup>
   <PropertyGroup>
-    <OutputType>winexe</OutputType>
+    <!-- <OutputType>winexe</OutputType> -->
+    <OutputType>exe</OutputType>
     <TargetFramework>net6.0-windows10.0.17763.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>

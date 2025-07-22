@@ -159,10 +159,26 @@ class Program
     {
         try
         {
+            string launchPath = filePath;
+            string? resolvedTarget = null;
+            if (filePath.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase))
+            {
+                resolvedTarget = Utils.RunInSTA(() => ShortcutResolver.ResolveShortcutTarget(filePath));
+                if (!string.IsNullOrWhiteSpace(resolvedTarget))
+                {
+                    launchPath = resolvedTarget;
+                }
+                else
+                {
+                    Utils.Log($"Failed to resolve shortcut: {filePath}");
+                    return;
+                }
+            }
+
             var startInfo = new ProcessStartInfo
             {
-                FileName = filePath,
-                UseShellExecute = true,
+                FileName = launchPath,
+                UseShellExecute = false,
                 CreateNoWindow = false,
                 WindowStyle = ProcessWindowStyle.Hidden
             };

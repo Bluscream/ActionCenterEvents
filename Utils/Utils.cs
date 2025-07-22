@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 static class Utils
 {
@@ -30,5 +31,21 @@ static class Utils
         {
             Console.WriteLine(message);
         }
+    }
+
+    public static T RunInSTA<T>(Func<T> func)
+    {
+        T? result = default;
+        Exception? exception = null;
+        var thread = new Thread(() =>
+        {
+            try { result = func(); }
+            catch (Exception ex) { exception = ex; }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+        if (exception != null) throw exception;
+        return result!;
     }
 }
