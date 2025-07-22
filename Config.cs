@@ -10,6 +10,7 @@ using System.Linq;
     {
         public string EnvironmentVariablePrefix { get; set; } = "ACTIONCENTER_";
         public bool Console { get; set; } = false;
+        public bool csv { get; set; } = true;
 
     public static Config Load(string[] args, string exePath)
     {
@@ -99,6 +100,18 @@ using System.Linq;
                         else
                         {
                             Console = value.ToLowerInvariant() == "true" || value.ToLowerInvariant() == "1";
+                        }
+                        break;
+                    case "csvlogging":
+                        // For boolean flags: if no value provided, default to true
+                        // If value is provided, parse it as boolean
+                        if (value == null)
+                        {
+                            csv = true;
+                        }
+                        else
+                        {
+                            csv = value.ToLowerInvariant() == "true" || value.ToLowerInvariant() == "1";
                         }
                         break;
                 }

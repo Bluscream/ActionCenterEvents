@@ -25,17 +25,24 @@ The application can be configured via JSON files or command-line arguments:
 ```json
 {
   "EnvironmentVariablePrefix": "ACTIONCENTER_",
-  "Console": false
+  "Console": false,
+  "csv": true
 }
 ```
 
 - `EnvironmentVariablePrefix`: Prefix for environment variables passed to executed scripts (default: "ACTIONCENTER_")
 - `Console`: Whether to show console window (default: false for winexe builds)
+- `csv`: Whether to log notifications to CSV file (default: true)
 
 ### Command-Line Arguments
 
-- `--console true/false`: Enable/disable console window
+- `--console` or `--console true`: Enable console window
+- `--console false`: Disable console window
+- `--csv` or `--csv true`: Enable CSV logging (default)
+- `--csv false`: Disable CSV logging
 - `--envprefix PREFIX`: Set environment variable prefix
+
+**Note**: Boolean flags like `--console` and `--csv` default to `true` when the switch is present without a value.
 
 ## Event Scripts
 

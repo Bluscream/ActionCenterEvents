@@ -36,15 +36,14 @@ class Program
         var poller = new ActionCenterPoller();
         var shutdownRequested = false;
         
-        // Create CSV file with header if it doesn't exist
-        if (!File.Exists(csvLogPath))
+        // Create CSV file with header if it doesn't exist and CSV logging is enabled
+        if (config.csv && !File.Exists(csvLogPath))
         {
             File.WriteAllText(csvLogPath, csvHeader + Environment.NewLine, Encoding.UTF8);
         }
         
         try
         {
-            Utils.Log($"Console Enabled: {config.Console}");
             Utils.Log($"Database path: {poller._dbPath}");
             Utils.Log($"CSV log path: {csvLogPath}");
             Utils.Log($"Global events path: {eventsDirGlobal}");
@@ -66,14 +65,17 @@ class Program
                     Utils.Log($"[{timestamp}] {appId}: {toastTitle} - {toastBody}");
                     
                     // Log to CSV
-                    var csvLine = string.Join(",", new[] { timestamp, appId, toastTitle, toastBody, payload }.Select(field => $"\"{field}\""));
-                    try
+                    if (config.csv)
                     {
-                        File.AppendAllText(csvLogPath, csvLine + Environment.NewLine, Encoding.UTF8);
-                    }
-                    catch (Exception ex)
-                    {
-                        Utils.Log($"Failed to write to CSV: {ex.Message}");
+                        var csvLine = string.Join(",", new[] { timestamp, appId, toastTitle, toastBody, payload }.Select(field => $"\"{field}\""));
+                        try
+                        {
+                            File.AppendAllText(csvLogPath, csvLine + Environment.NewLine, Encoding.UTF8);
+                        }
+                        catch (Exception ex)
+                        {
+                            Utils.Log($"Failed to write to CSV: {ex.Message}");
+                        }
                     }
                     
                     // Execute files in specified directories
