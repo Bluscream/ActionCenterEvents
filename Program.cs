@@ -14,7 +14,7 @@ class Program
         var eventsDirGlobal = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Events", "OnActionCenterNotification");
         var eventsDirUser = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Events", "OnActionCenterNotification");
         var csvLogPath = Path.Combine(Path.GetTempPath(), "ActionCenterEvents.csv");
-        var csvHeader = "Timestamp,AppId,ToastTitle,ToastBody,Payload";
+        var csvHeader = "Timestamp,AppId,ToastTitle,ImageCount,Image1,ToastBody,Payload";
         
         // Load configuration
         var config = Config.Load(args);
@@ -59,14 +59,16 @@ class Program
                     var appId = notif.AppId ?? "";
                     var toastTitle = notif.Payload.ToastTitle ?? "";
                     var toastBody = notif.Payload.ToastBody ?? "";
-                    var payload = notif.Payload.ToString() ?? "";
+                    var image1 = notif.Payload.Images.Count > 0 ? notif.Payload.Images[0] : "";
+                    var payload = notif.Payload.RawXml;
                     
-                    Utils.Log($"[{timestamp}] {appId}: {toastTitle} - {toastBody}");
+                    Utils.Log($"{timestamp};{appId};{toastTitle};{notif.Payload.Images.Count};{image1};{toastBody}");
                     
                     // Log to CSV
                     if (config.csv)
                     {
-                        var csvLine = string.Join(",", new[] { timestamp, appId, toastTitle, toastBody, payload }.Select(field => $"\"{field}\""));
+                        var payloadString = payload?.Replace("\r", "").Replace("\n", "").Replace("\"", "\"\"") ?? "";
+                        var csvLine = string.Join(",", new[] { timestamp, appId, toastTitle, toastBody, notif.Payload.Images.Count.ToString(), image1, payloadString }.Select(field => $"\"{field}\""));
                         try
                         {
                             File.AppendAllText(csvLogPath, csvLine + Environment.NewLine, Encoding.UTF8);
@@ -78,7 +80,7 @@ class Program
                     }
                     
                     // Execute files in specified directories
-                    ExecuteNotificationFiles(config, eventsDirGlobal, eventsDirUser, appId, toastTitle, toastBody, payload, timestamp);
+                    ExecuteNotificationFiles(config, eventsDirGlobal, eventsDirUser, appId, toastTitle, toastBody, payload, timestamp, notif.Payload.Images);
                 }
                 catch (Exception ex)
                 {
@@ -116,7 +118,7 @@ class Program
         }
     }
     
-    static void ExecuteNotificationFiles(Config config, string eventsDirGlobal, string eventsDirUser, string appId, string toastTitle, string toastBody, string payload, string timestamp)
+    static void ExecuteNotificationFiles(Config config, string eventsDirGlobal, string eventsDirUser, string appId, string toastTitle, string toastBody, string payload, string timestamp, List<string> images)
     {
         var directories = new[]
         {
@@ -144,7 +146,7 @@ class Program
                 var files = Directory.GetFiles(directory, "*.*", SearchOption.TopDirectoryOnly);
                 foreach (var file in files)
                 {
-                    ExecuteFile(config, file, appId, toastTitle, toastBody, payload, timestamp);
+                    ExecuteFile(config, file, appId, toastTitle, toastBody, payload, timestamp, images);
                 }
             }
             catch (Exception ex)
@@ -154,7 +156,7 @@ class Program
         }
     }
     
-    static void ExecuteFile(Config config, string filePath, string appId, string toastTitle, string toastBody, string payload, string timestamp)
+    static void ExecuteFile(Config config, string filePath, string appId, string toastTitle, string toastBody, string payload, string timestamp, List<string> images)
     {
         try
         {
@@ -182,11 +184,19 @@ class Program
                 startInfo.EnvironmentVariables[prefix + "PAYLOAD"] = payload;
                 startInfo.EnvironmentVariables[prefix + "TIMESTAMP"] = timestamp;
                 startInfo.EnvironmentVariables[prefix + "DATETIME"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                foreach (var image in images)
+                {
+                    var varName = prefix + "IMAGE" + (images.IndexOf(image) + 1);
+                    Utils.Log($"Setting environment variable {varName} to {image}");
+                    startInfo.EnvironmentVariables[varName] = image;
+                }
             }
             else
             {
-                Utils.Log($"Warning: Environment variables are not supported for shortcuts (.lnk files): {filePath}");
+                Utils.Log($"Warning: Environment variables are not supported for shortcuts (.lnk files)!");
             }
+
+            Utils.Log($"Executing {filePath} with arguments: {startInfo.Arguments}");
 
             var process = Process.Start(startInfo);
             // Do not wait for exit, do not read output

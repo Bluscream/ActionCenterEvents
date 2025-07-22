@@ -35,35 +35,19 @@ static class Utils
         }
     }
 
-        public static string GetOwnPath() {
-            var possiblePaths = new List<string> {
-                Process.GetCurrentProcess().MainModule?.FileName,
-                AppContext.BaseDirectory,
-                Environment.GetCommandLineArgs().FirstOrDefault(),
-                Assembly.GetEntryAssembly()?.Location,
-                ".",
-            };
-            foreach (var path in possiblePaths) {
-                if (!string.IsNullOrEmpty(path) && System.IO.File.Exists(path)) {
-                    return System.IO.Path.GetFullPath(path);
-                }
+    public static string GetOwnPath() {
+        var possiblePaths = new List<string> {
+            Process.GetCurrentProcess().MainModule?.FileName,
+            AppContext.BaseDirectory,
+            Environment.GetCommandLineArgs().FirstOrDefault(),
+            Assembly.GetEntryAssembly()?.Location,
+            ".",
+        };
+        foreach (var path in possiblePaths) {
+            if (!string.IsNullOrEmpty(path) && System.IO.File.Exists(path)) {
+                return System.IO.Path.GetFullPath(path);
             }
-            return null;
         }
-
-    public static T RunInSTA<T>(Func<T> func)
-    {
-        T? result = default;
-        Exception? exception = null;
-        var thread = new Thread(() =>
-        {
-            try { result = func(); }
-            catch (Exception ex) { exception = ex; }
-        });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        thread.Join();
-        if (exception != null) throw exception;
-        return result!;
+        return null;
     }
 }
