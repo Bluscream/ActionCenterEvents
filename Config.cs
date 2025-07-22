@@ -8,7 +8,7 @@ using System.Linq;
 
     public class Config
     {
-        public string EnvironmentVariablePrefix { get; set; } = "ACTIONCENTER_";
+        public string EnvironmentVariablePrefix { get; set; } = "NOTIFICATION_";
         public bool Console { get; set; } = false;
         public bool csv { get; set; } = true;
 
@@ -88,7 +88,7 @@ using System.Linq;
                 {
                     case "envprefix":
                     case "environmentvariableprefix":
-                        EnvironmentVariablePrefix = value ?? "ACTIONCENTER_";
+                        EnvironmentVariablePrefix = value ?? new Config().EnvironmentVariablePrefix;
                         break;
                     case "console":
                         // For boolean flags: if no value provided, default to true
