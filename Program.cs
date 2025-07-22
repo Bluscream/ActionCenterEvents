@@ -11,14 +11,13 @@ class Program
     static void Main(string[] args)
     {
         // Define paths
-        var exePath = AppContext.BaseDirectory ?? System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName ?? Environment.GetCommandLineArgs().FirstOrDefault() ?? ".";
         var eventsDirGlobal = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Events", "OnActionCenterNotification");
         var eventsDirUser = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Events", "OnActionCenterNotification");
         var csvLogPath = Path.Combine(Path.GetTempPath(), "ActionCenterEvents.csv");
         var csvHeader = "Timestamp,AppId,ToastTitle,ToastBody,Payload";
         
         // Load configuration
-        var config = Config.Load(args, exePath);
+        var config = Config.Load(args);
 
         // Initialize console if requested
         if (config.Console)
@@ -159,43 +158,40 @@ class Program
     {
         try
         {
-            string launchPath = filePath;
-            string? resolvedTarget = null;
-            if (filePath.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase))
-            {
-                resolvedTarget = Utils.RunInSTA(() => ShortcutResolver.ResolveShortcutTarget(filePath));
-                if (!string.IsNullOrWhiteSpace(resolvedTarget))
-                {
-                    launchPath = resolvedTarget;
-                }
-                else
-                {
-                    Utils.Log($"Failed to resolve shortcut: {filePath}");
-                    return;
-                }
-            }
+            var isBatch = filePath.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase) || filePath.EndsWith(".bat", StringComparison.OrdinalIgnoreCase);
+            var isShortcut = filePath.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase);
 
             var startInfo = new ProcessStartInfo
             {
-                FileName = launchPath,
-                UseShellExecute = false,
-                CreateNoWindow = false,
-                WindowStyle = ProcessWindowStyle.Hidden
+                FileName = isBatch ? "cmd.exe" : filePath,
+                Arguments = isBatch ? $"/c \"{filePath}\"" : "",
+                UseShellExecute = isShortcut ? true : false,
+                CreateNoWindow = true, // Hide window for non-shortcuts
+                WindowStyle = ProcessWindowStyle.Hidden,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
             };
-            
-            // Set environment variables with configurable prefix
-            var prefix = config.EnvironmentVariablePrefix;
-            startInfo.EnvironmentVariables[prefix + "APPID"] = appId;
-            startInfo.EnvironmentVariables[prefix + "TITLE"] = toastTitle;
-            startInfo.EnvironmentVariables[prefix + "BODY"] = toastBody;
-            startInfo.EnvironmentVariables[prefix + "PAYLOAD"] = payload;
-            startInfo.EnvironmentVariables[prefix + "TIMESTAMP"] = timestamp;
-            startInfo.EnvironmentVariables[prefix + "DATETIME"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            
+
+            if (!isShortcut)
+            {
+                // Set environment variables with configurable prefix
+                var prefix = config.EnvironmentVariablePrefix;
+                startInfo.EnvironmentVariables[prefix + "APPID"] = appId;
+                startInfo.EnvironmentVariables[prefix + "TITLE"] = toastTitle;
+                startInfo.EnvironmentVariables[prefix + "BODY"] = toastBody;
+                startInfo.EnvironmentVariables[prefix + "PAYLOAD"] = payload;
+                startInfo.EnvironmentVariables[prefix + "TIMESTAMP"] = timestamp;
+                startInfo.EnvironmentVariables[prefix + "DATETIME"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            }
+            else
+            {
+                Utils.Log($"Warning: Environment variables are not supported for shortcuts (.lnk files): {filePath}");
+            }
+
             var process = Process.Start(startInfo);
+            // Do not wait for exit, do not read output
             if (process != null)
             {
-                // Don't wait for the process to complete
                 process.EnableRaisingEvents = false;
             }
         }

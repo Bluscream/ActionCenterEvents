@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Encodings.Web;
@@ -12,13 +11,11 @@ using System.Linq;
         public bool Console { get; set; } = false;
         public bool csv { get; set; } = true;
 
-    public static Config Load(string[] args, string exePath)
+    public static Config Load(string[] args)
     {
+        var exePath = Utils.GetOwnPath();
         var exeName = Path.GetFileNameWithoutExtension(exePath);
-        if (string.IsNullOrEmpty(exeName) || exeName == ".")
-        {
-            exeName = "ActionCenterEvents";
-        }
+        if (string.IsNullOrEmpty(exeName)) exeName = "ActionCenterEvents";
         var exeDir = Path.GetDirectoryName(exePath) ?? Environment.CurrentDirectory;
         var userDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var programConfigPath = Path.Combine(exeDir, exeName + ".json");

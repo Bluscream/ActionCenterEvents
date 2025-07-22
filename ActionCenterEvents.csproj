@@ -6,13 +6,13 @@
     <PackageReference Include="Microsoft.Toolkit.Uwp.Notifications" Version="7.1.3" />
   </ItemGroup>
   <PropertyGroup>
-    <!-- <OutputType>winexe</OutputType> -->
-    <OutputType>exe</OutputType>
+    <OutputType>winexe</OutputType>
+    <!-- <OutputType>exe</OutputType> -->
     <TargetFramework>net6.0-windows10.0.17763.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <Version>1.0.2.2</Version>
+    <Version>1.0.3.0</Version>
     <RepositoryUrl>https://github.com/Bluscream/ActionCenterEvents</RepositoryUrl>
   </PropertyGroup>
 </Project>

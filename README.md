@@ -62,6 +62,8 @@ Scripts receive these environment variables (with configurable prefix):
 - `{PREFIX}TIMESTAMP`: Notification timestamp
 - `{PREFIX}DATETIME`: Current date/time
 
+**Note:** Environment variables are not supported for Windows shortcut files (`.lnk`). If a `.lnk` file is executed, a warning will be logged and no environment variables will be passed to the target.
+
 ## Logging
 
 All notifications are logged to: `%TEMP%\ActionCenterEvents.csv`
