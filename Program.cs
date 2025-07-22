@@ -10,11 +10,6 @@ class Program
 {
     static void Main(string[] args)
     {
-        
-        Utils.SetConsoleTitle("ActionCenterEvents");
-        var poller = new ActionCenterPoller();
-        var shutdownRequested = false;
-        
         // Define paths
         var exePath = AppContext.BaseDirectory ?? System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName ?? Environment.GetCommandLineArgs().FirstOrDefault() ?? ".";
         var eventsDirGlobal = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Events", "OnActionCenterNotification");
@@ -24,6 +19,22 @@ class Program
         
         // Load configuration
         var config = Config.Load(args, exePath);
+
+        // Initialize console if requested
+        if (config.Console)
+        {
+            Utils.CreateConsole();
+            Utils.SetConsoleTitle("ActionCenterEvents");
+        }
+        Utils.SetConsoleEnabled(config.Console);
+        
+        if (config.Console)
+        {
+            Utils.Log("Initializing ActionCenterEvents...");
+        }
+        
+        var poller = new ActionCenterPoller();
+        var shutdownRequested = false;
         
         // Create CSV file with header if it doesn't exist
         if (!File.Exists(csvLogPath))
@@ -33,14 +44,12 @@ class Program
         
         try
         {
-            if (config.Console)
-            {
-                Console.WriteLine($"Database path: {poller._dbPath}");
-                Console.WriteLine($"CSV log path: {csvLogPath}");
-                Console.WriteLine($"Global events path: {eventsDirGlobal}");
-                Console.WriteLine($"User events path: {eventsDirUser}");
-                Console.WriteLine($"Environment variable prefix: {config.EnvironmentVariablePrefix}");
-            }
+            Utils.Log($"Console Enabled: {config.Console}");
+            Utils.Log($"Database path: {poller._dbPath}");
+            Utils.Log($"CSV log path: {csvLogPath}");
+            Utils.Log($"Global events path: {eventsDirGlobal}");
+            Utils.Log($"User events path: {eventsDirUser}");
+            Utils.Log($"Environment variable prefix: {config.EnvironmentVariablePrefix}");
             
             poller.OnNotification += notif =>
             {
@@ -54,11 +63,7 @@ class Program
                     var toastBody = notif.Payload.ToastBody ?? "";
                     var payload = notif.Payload.ToString() ?? "";
                     
-                    // Print to console if enabled
-                    if (config.Console)
-                    {
-                        Console.WriteLine($"[{timestamp}] {appId}: {toastTitle} - {toastBody}");
-                    }
+                    Utils.Log($"[{timestamp}] {appId}: {toastTitle} - {toastBody}");
                     
                     // Log to CSV
                     var csvLine = string.Join(",", new[] { timestamp, appId, toastTitle, toastBody, payload }.Select(field => $"\"{field}\""));
@@ -68,46 +73,41 @@ class Program
                     }
                     catch (Exception ex)
                     {
-                        if (config.Console)
-                        {
-                            Console.WriteLine($"Failed to write to CSV: {ex.Message}");
-                        }
+                        Utils.Log($"Failed to write to CSV: {ex.Message}");
                     }
                     
-                                            // Execute files in specified directories
-                        ExecuteNotificationFiles(config, eventsDirGlobal, eventsDirUser, appId, toastTitle, toastBody, payload, timestamp);
+                    // Execute files in specified directories
+                    ExecuteNotificationFiles(config, eventsDirGlobal, eventsDirUser, appId, toastTitle, toastBody, payload, timestamp);
                 }
                 catch (Exception ex)
                 {
-                    if (config.Console)
-                    {
-                        Console.WriteLine($"Error processing notification: {ex.Message}");
-                        Console.WriteLine($"Notification details - AppId: {notif?.AppId ?? "null"}, Timestamp: {notif?.Timestamp}");
-                    }
+                    Utils.Log($"Error processing notification: {ex.Message}");
+                    Utils.Log($"Notification details - AppId: {notif?.AppId ?? "null"}, Timestamp: {notif?.Timestamp}");
                 }
             };
 
             if (config.Console)
             {
-                Console.WriteLine("Press CTRL+C to exit...");
-            }
-            
-            // Set up CTRL+C handler
-            Console.CancelKeyPress += (sender, e) =>
-            {
-                e.Cancel = true; // Prevent the process from terminating immediately
-                if (config.Console)
+                Utils.Log("Press CTRL+C to exit...");
+                
+                // Set up CTRL+C handler only if console is enabled
+                Console.CancelKeyPress += (sender, e) =>
                 {
-                    Console.WriteLine("\nShutting down...");
-                }
-                shutdownRequested = true;
-            };
+                    e.Cancel = true; // Prevent the process from terminating immediately
+                    Utils.Log("\nShutting down...");
+                    shutdownRequested = true;
+                };
+            }
 
             // Keep the application running
+            Utils.Log("Starting main loop...");
+            
             while (!shutdownRequested)
             {
                 Thread.Sleep(100);
             }
+            
+            Utils.Log("Main loop ended.");
         }
         finally
         {
@@ -133,10 +133,7 @@ class Program
                 }
                 catch (Exception ex)
                 {
-                    if (config.Console)
-                    {
-                        Console.WriteLine($"Failed to create directory {directory}: {ex.Message}");
-                    }
+                    Utils.Log($"Failed to create directory {directory}: {ex.Message}");
                     continue;
                 }
             }
@@ -151,10 +148,7 @@ class Program
             }
             catch (Exception ex)
             {
-                if (config.Console)
-                {
-                    Console.WriteLine($"Failed to process directory {directory}: {ex.Message}");
-                }
+                Utils.Log($"Failed to process directory {directory}: {ex.Message}");
             }
         }
     }
@@ -189,10 +183,7 @@ class Program
         }
         catch (Exception ex)
         {
-            if (config.Console)
-            {
-                Console.WriteLine($"Failed to execute {filePath}: {ex.Message}");
-            }
+            Utils.Log($"Failed to execute {filePath}: {ex.Message}");
         }
     }
 }

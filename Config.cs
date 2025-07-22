@@ -13,7 +13,11 @@ using System.Linq;
 
     public static Config Load(string[] args, string exePath)
     {
-        var exeName = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
+        var exeName = Path.GetFileNameWithoutExtension(exePath);
+        if (string.IsNullOrEmpty(exeName) || exeName == ".")
+        {
+            exeName = "ActionCenterEvents";
+        }
         var exeDir = Path.GetDirectoryName(exePath) ?? Environment.CurrentDirectory;
         var userDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var programConfigPath = Path.Combine(exeDir, exeName + ".json");
@@ -81,13 +85,22 @@ using System.Linq;
                 }
                 switch (key)
                 {
-                                            case "envprefix":
-                        case "environmentvariableprefix":
-                            EnvironmentVariablePrefix = value ?? "ACTIONCENTER_";
-                            break;
-                        case "console":
-                            Console = value?.ToLowerInvariant() == "true" || value?.ToLowerInvariant() == "1";
-                            break;
+                    case "envprefix":
+                    case "environmentvariableprefix":
+                        EnvironmentVariablePrefix = value ?? "ACTIONCENTER_";
+                        break;
+                    case "console":
+                        // For boolean flags: if no value provided, default to true
+                        // If value is provided, parse it as boolean
+                        if (value == null)
+                        {
+                            Console = true;
+                        }
+                        else
+                        {
+                            Console = value.ToLowerInvariant() == "true" || value.ToLowerInvariant() == "1";
+                        }
+                        break;
                 }
             }
         }
