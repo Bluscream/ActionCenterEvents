@@ -2,6 +2,8 @@
 
 A Windows application that monitors Action Center notifications and executes custom scripts/events when notifications are received.
 
+![](https://files.catbox.moe/568ier.png)
+
 ## Features
 
 - Monitors Windows Action Center notifications in real-time
