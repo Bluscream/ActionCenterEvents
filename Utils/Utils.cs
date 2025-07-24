@@ -37,16 +37,16 @@ static class Utils
     }
 
     public static string GetOwnPath() {
-        var possiblePaths = new List<string> {
+        var possiblePaths = new List<string?> {
             Process.GetCurrentProcess().MainModule?.FileName,
             AppContext.BaseDirectory,
             Environment.GetCommandLineArgs().FirstOrDefault(),
-            Assembly.GetEntryAssembly()?.Location,
+            // Assembly.GetEntryAssembly()?.Location, // Removed due to IL3000 warning
             ".",
         };
-        foreach (var path in possiblePaths) {
-            if (!string.IsNullOrEmpty(path) && System.IO.File.Exists(path)) {
-                return System.IO.Path.GetFullPath(path);
+        foreach (var path in possiblePaths.Where(p => !string.IsNullOrEmpty(p))) {
+            if (System.IO.File.Exists(path!)) {
+                return System.IO.Path.GetFullPath(path!);
             }
         }
         return null;

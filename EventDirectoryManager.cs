@@ -8,8 +8,8 @@ public class EventDirectoryManager
 {
     private const string eventsDirName = "Events";
     private List<DirectoryInfo> Roots { get; } = new() {
-        new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData)),
-        new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile))
+        new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) ?? string.Empty),
+        new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) ?? string.Empty)
     };
 
     public EventDirectoryManager() { }	
@@ -19,7 +19,7 @@ public class EventDirectoryManager
     {
         foreach (var root in Roots)
         {
-            var eventDir = root.Combine(eventsDirName, name);
+            var eventDir = root.Combine(eventsDirName, name ?? string.Empty);
             try {
                 if (!eventDir.Exists) eventDir.Create();
                 foreach (var file in eventDir.Exists ? eventDir.GetFiles("*.*", SearchOption.TopDirectoryOnly) : Array.Empty<FileInfo>())
@@ -34,6 +34,7 @@ public class EventDirectoryManager
 
     private void ExecuteFile(string filePath, IDictionary<string, string> environmentVariables = null, IEnumerable<string> commandLineArgs = null)
     {
+        if (string.IsNullOrEmpty(filePath)) return;
         try
         {
             var isBatch = filePath.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase) || filePath.EndsWith(".bat", StringComparison.OrdinalIgnoreCase);

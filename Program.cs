@@ -78,22 +78,20 @@ class Program
                     
                     // Execute files in specified directories
                     var envVars = new Dictionary<string, string>() {
-                        { config.EnvironmentVariablePrefix + "APPID", appId },
-                        { config.EnvironmentVariablePrefix + "TITLE", toastTitle },
-                        { config.EnvironmentVariablePrefix + "BODY", toastBody },
-                        { config.EnvironmentVariablePrefix + "PAYLOAD", payload },
-                        { config.EnvironmentVariablePrefix + "TIMESTAMP", timestamp },
+                        { config.EnvironmentVariablePrefix + "APPID", appId ?? string.Empty },
+                        { config.EnvironmentVariablePrefix + "TITLE", toastTitle ?? string.Empty },
+                        { config.EnvironmentVariablePrefix + "BODY", toastBody ?? string.Empty },
+                        { config.EnvironmentVariablePrefix + "PAYLOAD", payload ?? string.Empty },
+                        { config.EnvironmentVariablePrefix + "TIMESTAMP", timestamp ?? string.Empty },
                         { config.EnvironmentVariablePrefix + "DATETIME", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") }
                     };
                     for (int i = 0; i < notif.Payload.Images.Count; i++)
                     {
                         var varName = config.EnvironmentVariablePrefix + $"IMAGE{i + 1}";
-                        envVars[varName] = notif.Payload.Images[i];
+                        envVars[varName] = notif.Payload.Images[i] ?? string.Empty;
                     }
                     eventDirs.ExecuteEvent("OnActionCenterNotification", envVars);
-                }
-                catch (Exception ex)
-                {
+                } catch (Exception ex) {
                     Utils.Log($"Error processing notification: {ex.Message}");
                     Utils.Log($"Notification details - AppId: {notif?.AppId ?? "null"}, Timestamp: {notif?.Timestamp}");
                 }
