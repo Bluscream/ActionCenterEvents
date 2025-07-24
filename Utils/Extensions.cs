@@ -1,3 +1,7 @@
+using System.IO;
+using System;
+using System.Linq;
+
 static class Extensions
 {
     #region DirectoryInfo

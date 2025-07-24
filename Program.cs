@@ -1,12 +1,11 @@
 ﻿using System;
-using ActionCenterListener;
 using System.Threading;
-using Microsoft.Toolkit.Uwp.Notifications;
 using System.IO;
 using System.Diagnostics;
 using System.Text;
-using System.Collections.Generic; // Added for List<string>
-using System.Linq; // Added for Select
+using System.Collections.Generic; // For List<string>
+using System.Linq; // For Select
+using ActionCenterListener;
 
 class Program
 {
@@ -88,7 +87,7 @@ class Program
                     };
                     for (int i = 0; i < notif.Payload.Images.Count; i++)
                     {
-                        var varName = prefix + $"IMAGE{i + 1}";
+                        var varName = config.EnvironmentVariablePrefix + $"IMAGE{i + 1}";
                         envVars[varName] = notif.Payload.Images[i];
                     }
                     eventDirs.ExecuteEvent("OnActionCenterNotification", envVars);
