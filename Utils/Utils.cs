@@ -41,7 +41,9 @@ static class Utils
             Process.GetCurrentProcess().MainModule?.FileName,
             AppContext.BaseDirectory,
             Environment.GetCommandLineArgs().FirstOrDefault(),
-            // Assembly.GetEntryAssembly()?.Location, // Removed due to IL3000 warning
+            #pragma warning disable IL3000
+            Assembly.GetEntryAssembly()?.Location,
+            #pragma warning restore IL3000
             ".",
         };
         foreach (var path in possiblePaths.Where(p => !string.IsNullOrEmpty(p))) {
