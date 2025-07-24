@@ -45,8 +45,6 @@ class Program
         {
             Utils.Log($"Database path: {poller._dbPath}");
             Utils.Log($"CSV log path: {csvLogFile.FullName}");
-            Utils.Log($"Global events path: {eventDirs.GlobalEventDirectory}");
-            Utils.Log($"User events path: {eventDirs.UserEventDirectory}");
             Utils.Log($"Environment variable prefix: {config.EnvironmentVariablePrefix}");
             
             poller.OnNotification += notif =>
@@ -80,7 +78,20 @@ class Program
                     }
                     
                     // Execute files in specified directories
-                    eventDirs.ExecuteEventDirectories(config, "OnActionCenterNotification", appId, toastTitle, toastBody, payload, timestamp, notif.Payload.Images);
+                    var envVars = new Dictionary<string, string>();
+                    var prefix = config.EnvironmentVariablePrefix;
+                    envVars[prefix + "APPID"] = appId;
+                    envVars[prefix + "TITLE"] = toastTitle;
+                    envVars[prefix + "BODY"] = toastBody;
+                    envVars[prefix + "PAYLOAD"] = payload;
+                    envVars[prefix + "TIMESTAMP"] = timestamp;
+                    envVars[prefix + "DATETIME"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                    for (int i = 0; i < notif.Payload.Images.Count; i++)
+                    {
+                        var varName = prefix + $"IMAGE{i + 1}";
+                        envVars[varName] = notif.Payload.Images[i];
+                    }
+                    eventDirs.ExecuteEvent("OnActionCenterNotification", envVars);
                 }
                 catch (Exception ex)
                 {
@@ -115,61 +126,6 @@ class Program
         finally
         {
             poller.Dispose();
-        }
-    }
-    
-    static void ExecuteFile(Config config, string filePath, string appId, string toastTitle, string toastBody, string payload, string timestamp, List<string> images)
-    {
-        try
-        {
-            var isBatch = filePath.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase) || filePath.EndsWith(".bat", StringComparison.OrdinalIgnoreCase);
-            var isShortcut = filePath.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase);
-
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = isBatch ? "cmd.exe" : filePath,
-                Arguments = isBatch ? $"/c \"{filePath}\"" : "",
-                UseShellExecute = isShortcut ? true : false,
-                CreateNoWindow = true, // Hide window for non-shortcuts
-                WindowStyle = ProcessWindowStyle.Hidden,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            };
-
-            if (!isShortcut)
-            {
-                // Set environment variables with configurable prefix
-                var prefix = config.EnvironmentVariablePrefix;
-                startInfo.EnvironmentVariables[prefix + "APPID"] = appId;
-                startInfo.EnvironmentVariables[prefix + "TITLE"] = toastTitle;
-                startInfo.EnvironmentVariables[prefix + "BODY"] = toastBody;
-                startInfo.EnvironmentVariables[prefix + "PAYLOAD"] = payload;
-                startInfo.EnvironmentVariables[prefix + "TIMESTAMP"] = timestamp;
-                startInfo.EnvironmentVariables[prefix + "DATETIME"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                foreach (var image in images)
-                {
-                    var varName = prefix + "IMAGE" + (images.IndexOf(image) + 1);
-                    Utils.Log($"Setting environment variable {varName} to {image}");
-                    startInfo.EnvironmentVariables[varName] = image;
-                }
-            }
-            else
-            {
-                Utils.Log($"Warning: Environment variables are not supported for shortcuts (.lnk files)!");
-            }
-
-            Utils.Log($"Executing {filePath} with arguments: {startInfo.Arguments}");
-
-            var process = Process.Start(startInfo);
-            // Do not wait for exit, do not read output
-            if (process != null)
-            {
-                process.EnableRaisingEvents = false;
-            }
-        }
-        catch (Exception ex)
-        {
-            Utils.Log($"Failed to execute {filePath}: {ex.Message}");
         }
     }
 }

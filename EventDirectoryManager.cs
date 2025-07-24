@@ -5,8 +5,8 @@ using System.Diagnostics;
 
 public class EventDirectoryManager
 {
-    public DirectoryInfo GlobalRoot { get; }
-    public DirectoryInfo UserRoot { get; }
+    private DirectoryInfo GlobalRoot { get; }
+    private DirectoryInfo UserRoot { get; }
 
     public EventDirectoryManager()
     {
@@ -14,19 +14,28 @@ public class EventDirectoryManager
         UserRoot = new DirectoryInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Events"));
     }
 
-    public DirectoryInfo GetEventSubdirectory(string subDir, bool global)
+    public void ExecuteEvent(string eventName, Dictionary<string, string> environmentVariables)
+    {
+        EnsureEventSubdirectoriesExist(eventName);
+        foreach (var file in GetFilesInEventSubdirectory(eventName))
+        {
+            ExecuteFile(file.FullName, environmentVariables);
+        }
+    }
+
+    private DirectoryInfo GetEventSubdirectory(string subDir, bool global)
     {
         var root = global ? GlobalRoot : UserRoot;
         return new DirectoryInfo(Path.Combine(root.FullName, subDir));
     }
 
-    public IEnumerable<DirectoryInfo> GetAllEventSubdirectories(string subDir)
+    private IEnumerable<DirectoryInfo> GetAllEventSubdirectories(string subDir)
     {
         yield return GetEventSubdirectory(subDir, true);
         yield return GetEventSubdirectory(subDir, false);
     }
 
-    public void EnsureEventSubdirectoriesExist(string subDir)
+    private void EnsureEventSubdirectoriesExist(string subDir)
     {
         foreach (var dir in GetAllEventSubdirectories(subDir))
         {
@@ -37,7 +46,7 @@ public class EventDirectoryManager
         }
     }
 
-    public IEnumerable<FileInfo> GetFilesInEventSubdirectory(string subDir, string searchPattern = "*.*")
+    private IEnumerable<FileInfo> GetFilesInEventSubdirectory(string subDir, string searchPattern = "*.*")
     {
         foreach (var dir in GetAllEventSubdirectories(subDir))
         {
@@ -51,16 +60,7 @@ public class EventDirectoryManager
         }
     }
 
-    public void ExecuteEventDirectories(Config config, string subDir, string appId, string toastTitle, string toastBody, string payload, string timestamp, List<string> images)
-    {
-        EnsureEventSubdirectoriesExist(subDir);
-        foreach (var file in GetFilesInEventSubdirectory(subDir))
-        {
-            ExecuteFile(config, file.FullName, appId, toastTitle, toastBody, payload, timestamp, images);
-        }
-    }
-
-    private void ExecuteFile(Config config, string filePath, string appId, string toastTitle, string toastBody, string payload, string timestamp, List<string> images)
+    private void ExecuteFile(string filePath, Dictionary<string, string> environmentVariables)
     {
         try
         {
@@ -72,7 +72,7 @@ public class EventDirectoryManager
                 FileName = isBatch ? "cmd.exe" : filePath,
                 Arguments = isBatch ? $"/c \"{filePath}\"" : "",
                 UseShellExecute = isShortcut ? true : false,
-                CreateNoWindow = true, // Hide window for non-shortcuts
+                CreateNoWindow = true,
                 WindowStyle = ProcessWindowStyle.Hidden,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true
@@ -80,19 +80,10 @@ public class EventDirectoryManager
 
             if (!isShortcut)
             {
-                // Set environment variables with configurable prefix
-                var prefix = config.EnvironmentVariablePrefix;
-                startInfo.EnvironmentVariables[prefix + "APPID"] = appId;
-                startInfo.EnvironmentVariables[prefix + "TITLE"] = toastTitle;
-                startInfo.EnvironmentVariables[prefix + "BODY"] = toastBody;
-                startInfo.EnvironmentVariables[prefix + "PAYLOAD"] = payload;
-                startInfo.EnvironmentVariables[prefix + "TIMESTAMP"] = timestamp;
-                startInfo.EnvironmentVariables[prefix + "DATETIME"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                for (int i = 0; i < images.Count; i++)
+                foreach (var kvp in environmentVariables)
                 {
-                    var varName = prefix + $"IMAGE{i + 1}";
-                    Utils.Log($"Setting environment variable {varName} to {images[i]}");
-                    startInfo.EnvironmentVariables[varName] = images[i];
+                    Utils.Log($"Setting environment variable {kvp.Key} to {kvp.Value}");
+                    startInfo.EnvironmentVariables[kvp.Key] = kvp.Value;
                 }
             }
             else
@@ -103,7 +94,6 @@ public class EventDirectoryManager
             Utils.Log($"Executing {filePath} with arguments: {startInfo.Arguments}");
 
             var process = Process.Start(startInfo);
-            // Do not wait for exit, do not read output
             if (process != null)
             {
                 process.EnableRaisingEvents = false;
