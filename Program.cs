@@ -5,17 +5,17 @@ using Microsoft.Toolkit.Uwp.Notifications;
 using System.IO;
 using System.Diagnostics;
 using System.Text;
+using System.Collections.Generic; // Added for List<string>
+using System.Linq; // Added for Select
 
 class Program
 {
+    static FileInfo csvLogFile = new FileInfo(Path.Combine(Path.GetTempPath(), "ActionCenterEvents.csv"));
+    static string csvHeader = "Timestamp,AppId,ToastTitle,ImageCount,Image1,ToastBody,Payload";
+    static EventDirectoryManager eventDirs = new EventDirectoryManager();
+
     static void Main(string[] args)
-    {
-        // Define paths
-        var eventsDirGlobal = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Events", "OnActionCenterNotification");
-        var eventsDirUser = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Events", "OnActionCenterNotification");
-        var csvLogPath = Path.Combine(Path.GetTempPath(), "ActionCenterEvents.csv");
-        var csvHeader = "Timestamp,AppId,ToastTitle,ImageCount,Image1,ToastBody,Payload";
-        
+    {        
         // Load configuration
         var config = Config.Load(args);
 
@@ -36,17 +36,17 @@ class Program
         var shutdownRequested = false;
         
         // Create CSV file with header if it doesn't exist and CSV logging is enabled
-        if (config.csv && !File.Exists(csvLogPath))
+        if (config.csv && !File.Exists(csvLogFile.FullName))
         {
-            File.WriteAllText(csvLogPath, csvHeader + Environment.NewLine, Encoding.UTF8);
+            File.WriteAllText(csvLogFile.FullName, csvHeader + Environment.NewLine, Encoding.UTF8);
         }
         
         try
         {
             Utils.Log($"Database path: {poller._dbPath}");
-            Utils.Log($"CSV log path: {csvLogPath}");
-            Utils.Log($"Global events path: {eventsDirGlobal}");
-            Utils.Log($"User events path: {eventsDirUser}");
+            Utils.Log($"CSV log path: {csvLogFile.FullName}");
+            Utils.Log($"Global events path: {eventDirs.GlobalEventDirectory}");
+            Utils.Log($"User events path: {eventDirs.UserEventDirectory}");
             Utils.Log($"Environment variable prefix: {config.EnvironmentVariablePrefix}");
             
             poller.OnNotification += notif =>
@@ -71,7 +71,7 @@ class Program
                         var csvLine = string.Join(",", new[] { timestamp, appId, toastTitle, toastBody, notif.Payload.Images.Count.ToString(), image1, payloadString }.Select(field => $"\"{field}\""));
                         try
                         {
-                            File.AppendAllText(csvLogPath, csvLine + Environment.NewLine, Encoding.UTF8);
+                            File.AppendAllText(csvLogFile.FullName, csvLine + Environment.NewLine, Encoding.UTF8);
                         }
                         catch (Exception ex)
                         {
@@ -80,7 +80,7 @@ class Program
                     }
                     
                     // Execute files in specified directories
-                    ExecuteNotificationFiles(config, eventsDirGlobal, eventsDirUser, appId, toastTitle, toastBody, payload, timestamp, notif.Payload.Images);
+                    eventDirs.ExecuteEventDirectories(config, "OnActionCenterNotification", appId, toastTitle, toastBody, payload, timestamp, notif.Payload.Images);
                 }
                 catch (Exception ex)
                 {
@@ -115,44 +115,6 @@ class Program
         finally
         {
             poller.Dispose();
-        }
-    }
-    
-    static void ExecuteNotificationFiles(Config config, string eventsDirGlobal, string eventsDirUser, string appId, string toastTitle, string toastBody, string payload, string timestamp, List<string> images)
-    {
-        var directories = new[]
-        {
-            eventsDirGlobal,
-            eventsDirUser
-        };
-        
-        foreach (var directory in directories)
-        {
-            if (!Directory.Exists(directory))
-            {
-                try
-                {
-                    Directory.CreateDirectory(directory);
-                }
-                catch (Exception ex)
-                {
-                    Utils.Log($"Failed to create directory {directory}: {ex.Message}");
-                    continue;
-                }
-            }
-            
-            try
-            {
-                var files = Directory.GetFiles(directory, "*.*", SearchOption.TopDirectoryOnly);
-                foreach (var file in files)
-                {
-                    ExecuteFile(config, file, appId, toastTitle, toastBody, payload, timestamp, images);
-                }
-            }
-            catch (Exception ex)
-            {
-                Utils.Log($"Failed to process directory {directory}: {ex.Message}");
-            }
         }
     }
     
