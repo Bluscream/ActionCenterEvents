@@ -27,7 +27,7 @@ public class EventDirectoryManager
                 ExecuteFile(file.FullName, environmentVariables, commandLineArgs);
             }
             } catch (Exception ex) {
-                Utils.Log($"Error executing event {name}: {ex.Message}");
+                Log($"Error executing event {name}: {ex.Message}");
             }
         }
     }
@@ -61,15 +61,15 @@ public class EventDirectoryManager
                 {
                     foreach (var kvp in environmentVariables)
                     {
-                        Utils.Log($"Setting environment variable {kvp.Key} to {kvp.Value}");
+                        Log($"Setting environment variable {kvp.Key} to {kvp.Value}");
                         startInfo.EnvironmentVariables[kvp.Key] = kvp.Value;
                     }
                 } else {
-                    Utils.Log($"Warning: Environment variables are not supported for shortcuts (.lnk files)!");
+                    Log($"Warning: Environment variables are not supported for shortcuts (.lnk files)!");
                 }
             }
 
-            Utils.Log($"Executing {filePath} with arguments: {startInfo.Arguments}");
+            Log($"Executing {filePath} with arguments: {startInfo.Arguments}");
 
             var process = Process.Start(startInfo);
             if (process != null)
@@ -79,7 +79,12 @@ public class EventDirectoryManager
         }
         catch (Exception ex)
         {
-            Utils.Log($"Failed to execute {filePath}: {ex.Message}");
+            Log($"Failed to execute {filePath}: {ex.Message}");
         }
+    }
+
+    private void Log(object message, params object[] args)
+    {
+        Utils.Log(string.Format(message.ToString(), args));
     }
 } 
