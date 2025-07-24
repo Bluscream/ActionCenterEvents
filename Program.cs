@@ -78,14 +78,14 @@ class Program
                     }
                     
                     // Execute files in specified directories
-                    var envVars = new Dictionary<string, string>();
-                    var prefix = config.EnvironmentVariablePrefix;
-                    envVars[prefix + "APPID"] = appId;
-                    envVars[prefix + "TITLE"] = toastTitle;
-                    envVars[prefix + "BODY"] = toastBody;
-                    envVars[prefix + "PAYLOAD"] = payload;
-                    envVars[prefix + "TIMESTAMP"] = timestamp;
-                    envVars[prefix + "DATETIME"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                    var envVars = new Dictionary<string, string>() {
+                        { config.EnvironmentVariablePrefix + "APPID", appId },
+                        { config.EnvironmentVariablePrefix + "TITLE", toastTitle },
+                        { config.EnvironmentVariablePrefix + "BODY", toastBody },
+                        { config.EnvironmentVariablePrefix + "PAYLOAD", payload },
+                        { config.EnvironmentVariablePrefix + "TIMESTAMP", timestamp },
+                        { config.EnvironmentVariablePrefix + "DATETIME", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") }
+                    };
                     for (int i = 0; i < notif.Payload.Images.Count; i++)
                     {
                         var varName = prefix + $"IMAGE{i + 1}";

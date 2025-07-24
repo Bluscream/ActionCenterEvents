@@ -5,62 +5,33 @@ using System.Diagnostics;
 
 public class EventDirectoryManager
 {
-    private DirectoryInfo GlobalRoot { get; }
-    private DirectoryInfo UserRoot { get; }
+    private const string eventsDirName = "Events";
+    private List<DirectoryInfo> Roots { get; } = new() {
+        new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData)),
+        new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile))
+    };
 
-    public EventDirectoryManager()
-    {
-        GlobalRoot = new DirectoryInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Events"));
-        UserRoot = new DirectoryInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Events"));
-    }
+    public EventDirectoryManager() { }	
+    public EventDirectoryManager(List<DirectoryInfo> roots) { Roots = roots; }
 
-    public void ExecuteEvent(string eventName, Dictionary<string, string> environmentVariables)
+    public void ExecuteEvent(string name, IDictionary<string, string> environmentVariables = null, IEnumerable<string> commandLineArgs = null)
     {
-        EnsureEventSubdirectoriesExist(eventName);
-        foreach (var file in GetFilesInEventSubdirectory(eventName))
+        foreach (var root in Roots)
         {
-            ExecuteFile(file.FullName, environmentVariables);
-        }
-    }
-
-    private DirectoryInfo GetEventSubdirectory(string subDir, bool global)
-    {
-        var root = global ? GlobalRoot : UserRoot;
-        return new DirectoryInfo(Path.Combine(root.FullName, subDir));
-    }
-
-    private IEnumerable<DirectoryInfo> GetAllEventSubdirectories(string subDir)
-    {
-        yield return GetEventSubdirectory(subDir, true);
-        yield return GetEventSubdirectory(subDir, false);
-    }
-
-    private void EnsureEventSubdirectoriesExist(string subDir)
-    {
-        foreach (var dir in GetAllEventSubdirectories(subDir))
-        {
-            if (!dir.Exists)
+            var eventDir = root.Combine(eventsDirName, name);
+            try {
+                if (!eventDir.Exists) eventDir.Create();
+                foreach (var file in eventDir.Exists ? eventDir.GetFiles("*.*", SearchOption.TopDirectoryOnly) : Array.Empty<FileInfo>())
             {
-                dir.Create();
+                ExecuteFile(file.FullName, environmentVariables, commandLineArgs);
+            }
+            } catch (Exception ex) {
+                Utils.Log($"Error executing event {name}: {ex.Message}");
             }
         }
     }
 
-    private IEnumerable<FileInfo> GetFilesInEventSubdirectory(string subDir, string searchPattern = "*.*")
-    {
-        foreach (var dir in GetAllEventSubdirectories(subDir))
-        {
-            if (dir.Exists)
-            {
-                foreach (var file in dir.GetFiles(searchPattern, SearchOption.TopDirectoryOnly))
-                {
-                    yield return file;
-                }
-            }
-        }
-    }
-
-    private void ExecuteFile(string filePath, Dictionary<string, string> environmentVariables)
+    private void ExecuteFile(string filePath, IDictionary<string, string> environmentVariables = null, IEnumerable<string> commandLineArgs = null)
     {
         try
         {
@@ -78,17 +49,22 @@ public class EventDirectoryManager
                 RedirectStandardError = true
             };
 
-            if (!isShortcut)
-            {
-                foreach (var kvp in environmentVariables)
-                {
-                    Utils.Log($"Setting environment variable {kvp.Key} to {kvp.Value}");
-                    startInfo.EnvironmentVariables[kvp.Key] = kvp.Value;
-                }
+            if (commandLineArgs != null) {
+                startInfo.Arguments += string.Join(" ", commandLineArgs.Select(a => $"\"{a}\""));
             }
-            else
+
+            if (environmentVariables != null)
             {
-                Utils.Log($"Warning: Environment variables are not supported for shortcuts (.lnk files)!");
+                if (!isShortcut)
+                {
+                    foreach (var kvp in environmentVariables)
+                    {
+                        Utils.Log($"Setting environment variable {kvp.Key} to {kvp.Value}");
+                        startInfo.EnvironmentVariables[kvp.Key] = kvp.Value;
+                    }
+                } else {
+                    Utils.Log($"Warning: Environment variables are not supported for shortcuts (.lnk files)!");
+                }
             }
 
             Utils.Log($"Executing {filePath} with arguments: {startInfo.Arguments}");

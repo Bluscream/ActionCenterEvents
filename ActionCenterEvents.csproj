@@ -10,7 +10,7 @@
     <TargetFramework>net6.0-windows10.0.17763.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <Version>1.0.4.3</Version>
+    <Version>1.0.4.4</Version>
     <RepositoryUrl>https://github.com/Bluscream/ActionCenterEvents</RepositoryUrl>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
