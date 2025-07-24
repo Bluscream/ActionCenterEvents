@@ -31,7 +31,10 @@ static class Utils
     internal static void Log(object message, params object[] args)
     {
         if (!_consoleEnabled) return;
-        Console.WriteLine(string.Format(message.ToString(), args));
+        var msg = message?.ToString() ?? string.Empty;
+        #pragma warning disable CS8604
+        Console.WriteLine(args != null && args.Length > 0 ? string.Format(msg, args) : msg);
+        #pragma warning restore CS8604
     }
 
     public static string GetOwnPath() {
@@ -49,6 +52,8 @@ static class Utils
                 return System.IO.Path.GetFullPath(path!);
             }
         }
-        return null;
+        #pragma warning disable CS8603
+        return string.Empty;
+        #pragma warning restore CS8603
     }
 }

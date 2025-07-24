@@ -8,8 +8,10 @@ public class EventDirectoryManager
 {
     private const string eventsDirName = "Events";
     private List<DirectoryInfo> Roots { get; } = new() {
-        new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) ?? string.Empty),
-        new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) ?? string.Empty)
+        #pragma warning disable CS8625
+        new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData)),
+        new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile))
+        #pragma warning restore CS8625
     };
 
     public EventDirectoryManager() { }	
@@ -20,17 +22,22 @@ public class EventDirectoryManager
         Log("Event Directories:");
         foreach (var root in Roots)
         {
-            var eventDir = root.Combine(eventsDirName);
+            #pragma warning disable CS8625
+            var eventDir = root.Combine(eventsDirName ?? string.Empty);
+            #pragma warning restore CS8625
             Log($"\t{eventDir.FullName}");
         }
     }
 
     public void ExecuteEvent(string name, IDictionary<string, string> environmentVariables = null, IEnumerable<string> commandLineArgs = null)
     {
-        Log($"Executing event {name}");
+        if (string.IsNullOrEmpty(name)) return;
+        Log($"Executing event {name ?? string.Empty}");
         foreach (var root in Roots)
         {
-            var eventDir = root.Combine(eventsDirName, name ?? string.Empty);
+            #pragma warning disable CS8625
+            var eventDir = root.Combine(eventsDirName ?? string.Empty, name ?? string.Empty);
+            #pragma warning restore CS8625
             try {
                 if (!eventDir.Exists) eventDir.Create();
                 foreach (var file in eventDir.Exists ? eventDir.GetFiles("*.*", SearchOption.TopDirectoryOnly) : Array.Empty<FileInfo>())
@@ -38,7 +45,7 @@ public class EventDirectoryManager
                 ExecuteFile(file.FullName, environmentVariables, commandLineArgs);
             }
             } catch (Exception ex) {
-                Log($"Error executing event {name}: {ex.Message}");
+                Log($"Error executing event {name ?? string.Empty}: {ex.Message}");
             }
         }
     }
@@ -96,7 +103,10 @@ public class EventDirectoryManager
 
     private void Log(object message, params object[] args)
     {
-        var formattedMessage = string.Format(message.ToString(), args);
+        var msg = message?.ToString() ?? string.Empty;
+        #pragma warning disable CS8604
+        var formattedMessage = args != null && args.Length > 0 ? string.Format(msg, args) : msg;
+        #pragma warning restore CS8604
         Utils.Log(formattedMessage);
     }
 } 
