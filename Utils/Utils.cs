@@ -28,12 +28,10 @@ static class Utils
         _consoleEnabled = enabled;
     }
 
-    internal static void Log(string message)
+    internal static void Log(object message, params object[] args)
     {
-        if (_consoleEnabled)
-        {
-            Console.WriteLine(message);
-        }
+        if (!_consoleEnabled) return;
+        Console.WriteLine(string.Format(message.ToString(), args));
     }
 
     public static string GetOwnPath() {

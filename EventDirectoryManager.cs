@@ -96,6 +96,7 @@ public class EventDirectoryManager
 
     private void Log(object message, params object[] args)
     {
-        Utils.Log(string.Format(message.ToString(), args));
+        var formattedMessage = string.Format(message.ToString(), args);
+        Utils.Log(formattedMessage);
     }
 } 
