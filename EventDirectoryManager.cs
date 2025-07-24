@@ -15,8 +15,19 @@ public class EventDirectoryManager
     public EventDirectoryManager() { }	
     public EventDirectoryManager(List<DirectoryInfo> roots) { Roots = roots; }
 
+    public void Initialize()
+    {
+        Log("Event Directories:");
+        foreach (var root in Roots)
+        {
+            var eventDir = root.Combine(eventsDirName);
+            Log($"\t{eventDir.FullName}");
+        }
+    }
+
     public void ExecuteEvent(string name, IDictionary<string, string> environmentVariables = null, IEnumerable<string> commandLineArgs = null)
     {
+        Log($"Executing event {name}");
         foreach (var root in Roots)
         {
             var eventDir = root.Combine(eventsDirName, name ?? string.Empty);
